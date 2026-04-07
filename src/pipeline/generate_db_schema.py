@@ -1,10 +1,12 @@
 import logging
-from typing import Any, Dict
+import os
 from pathlib import Path
-from sentence_transformers import SentenceTransformer
+from typing import Any, Dict
+
 from pipeline.utils import node_decorator
 from pipeline.pipeline_manager import PipelineManager
 from runner.database_manager import DatabaseManager
+from runner.text_encoder import get_text_encoder
 from llm.model import model_chose
 from llm.db_conclusion import *
 import json
@@ -13,8 +15,7 @@ import json
 def generate_db_schema(task: Any, execution_history: Dict[str, Any]) -> Dict[str, Any]:
     config,node_name=PipelineManager().get_model_para()
     paths=DatabaseManager()
-    # 初始化模型
-    bert_model = SentenceTransformer(config["bert_model"], device=config["device"])
+    bert_model = get_text_encoder(config["bert_model"], device=config["device"])
 
     # 读取参数
     db_json_dir = paths.db_json
@@ -51,7 +52,6 @@ def generate_db_schema(task: Any, execution_history: Dict[str, Any]) -> Dict[str
         "db_col_dic": db_col
     }
     return response
-
 
 
 

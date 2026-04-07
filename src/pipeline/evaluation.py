@@ -46,7 +46,11 @@ def evaluation(task: Any, execution_history: Dict[str, Any]) -> Dict[str, Any]:
                     predicted_sql=vote_all[0]['sql']
                 elif evaluation_for=="candidate_generate":
                     candidate_all=node_result['SQL']
-                    predicted_sql=sql_raw_parse(candidate_all[0], False)[0]
+                    if isinstance(candidate_all, str):
+                        candidate_sql = candidate_all
+                    else:
+                        candidate_sql = candidate_all[0]
+                    predicted_sql=sql_raw_parse(candidate_sql, False)[0]
                 elif evaluation_for=="vote":
                     predicted_sql = node_result["SQL"]
                 response = DatabaseManager().compare_sqls(

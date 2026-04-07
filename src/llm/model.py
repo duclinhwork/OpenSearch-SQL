@@ -1,238 +1,212 @@
-import requests, time
-import dashscope
-import torch
-import json
+import os
 import re
-from runner.logger import Logger
+import time
+from typing import Any, Dict, List, Optional, Union
+
+import requests
+
 from llm.prompts import prompts_fewshot_parse
-def model_chose(step,model="gpt-4 32K"):
-    if model.startswith("gpt") or model.startswith("claude35_sonnet") or model.startswith("gemini"):
-        return gpt_req(step,model)
-    if model == "deepseek":
-        return deep_seek(model)
+from runner.logger import Logger
+
+
+def model_chose(step: str, model: str = "gpt-4o-mini") -> "BaseReq":
+    if "/" in model:
+        return OpenRouterReq(step, model)
+    if model.startswith("gpt") or model.startswith("claude") or model.startswith("gemini"):
+        return OpenAICompatibleReq(step, model)
     if model.startswith("qwen"):
-        return qwenmax(model)
-    if model.startswith("sft"):
-        return sft_req()
+        return OpenRouterReq(step, model)
+    return OpenAICompatibleReq(step, model)
 
 
-class req:
+class BaseReq:
+    def __init__(self, step: str, model: str) -> None:
+        self.cost = 0.0
+        self.model = model
+        self.step = step
 
-    def __init__(self,step,model) -> None:
-        self.Cost = 0
-        self.model=model
-        self.step=step
-
-    def log_record(self,prompt_text,output):
-        logger=Logger()
+    def log_record(self, prompt_text: str, output: Any) -> None:
+        logger = Logger()
         logger.log_conversation(prompt_text, "Human", self.step)
         logger.log_conversation(output, "AI", self.step)
 
-    def fewshot_parse(self, question, evidence, sql):
-        s = prompts_fewshot_parse().parse_fewshot.format(question=question,sql=sql)
-        ext = self.get_ans(s)
-        ext=ext.replace('```','').strip()
-        ext = ext.split("#SQL:")[0]# 防止没按格式生成 至少保留SQL
-        ans = self.convert_table(ext, sql)
-        return ans
-    def convert_table(self, s, sql):
-        l = re.findall(' ([^ ]*) +AS +([^ ]*)', sql)
-        x, v = s.split("#values:")
-        t, s = x.split("#SELECT:")
-        for li in l:
-            s = s.replace(f"{li[1]}.", f"{li[0]}.")
-        return t + "#SELECT:" + s + "#values:" + v
+    def fewshot_parse(self, question: str, evidence: str, sql: str) -> str:
+        prompt = prompts_fewshot_parse().parse_fewshot.format(question=question, sql=sql)
+        response = self.get_ans(prompt)
+        response = response.replace("```", "").strip()
+        response = response.split("#SQL:")[0]
+        return self.convert_table(response, sql)
 
-def request(url,model,messages,temperature,top_p,n,key,**k):
-    res = requests.post(
-                url=
-                url,
-                json={
-                    "model":
-                    model,
-                    "messages": [{
-                        "role": "system",
-                        "content":
-                        "You are an SQL expert, skilled in handling various SQL-related issues."
-                    }, {
-                        "role": "user",
-                        "content": messages
-                    }],
-                    "max_tokens":
-                    800,
-                    "temperature":
-                    temperature,
-                    "top_p":top_p,
-                    "n":n,
-                    **k
-                },
-                headers={
-                    "Authorization":
-                    key
-                }).json()
+    def convert_table(self, content: str, sql: str) -> str:
+        aliases = re.findall(r" ([^ ]*) +AS +([^ ]*)", sql)
+        header, select_and_values = content.split("#SELECT:")
+        select_part, value_part = select_and_values.split("#values:")
+        for table, alias in aliases:
+            select_part = select_part.replace(f"{alias}.", f"{table}.")
+        return f"{header}#SELECT:{select_part}#values:{value_part}"
 
-    return res
+    def get_ans(self, messages: str, temperature: float = 0.0, top_p: Optional[float] = None, n: int = 1, single: bool = True, **kwargs: Any) -> Union[str, List[Dict[str, Any]]]:
+        raise NotImplementedError
 
-class gpt_req(req):
 
-    def __init__(self, step,model="gpt-4o-0513") -> None:
-        super().__init__(step,model)
+class OpenAICompatibleReq(BaseReq):
+    def __init__(self, step: str, model: str = "gpt-4o-mini") -> None:
+        super().__init__(step, model)
+        self.api_url = os.getenv("OPENAI_API_URL", "https://api.openai.com/v1/chat/completions")
+        self.api_key = os.getenv("OPENAI_API_KEY", "")
 
-    def get_ans(self, messages, temperature=0.0, top_p=None,n=1,single=True,**k):
-        count = 0
-        while count < 50:
-            # print(messages) #保存prompt和答案
+    def _request(
+        self,
+        messages: str,
+        temperature: float,
+        top_p: Optional[float],
+        n: int,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        if not self.api_key:
+            raise ValueError("OPENAI_API_KEY is required for OpenAI-compatible models.")
+        optional_keys = {
+            "stop",
+            "presence_penalty",
+            "frequency_penalty",
+            "response_format",
+            "seed",
+            "tools",
+            "tool_choice",
+        }
+        extras = {k: v for k, v in kwargs.items() if k in optional_keys}
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": "You are an SQL expert, skilled in handling SQL-related tasks."},
+                {"role": "user", "content": messages},
+            ],
+            "max_tokens": 800,
+            "temperature": temperature,
+            "n": n,
+            **extras,
+        }
+        if top_p is not None:
+            payload["top_p"] = top_p
+        response = requests.post(
+            self.api_url,
+            json=payload,
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            timeout=120,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def get_ans(
+        self,
+        messages: str,
+        temperature: float = 0.0,
+        top_p: Optional[float] = None,
+        n: int = 1,
+        single: bool = True,
+        **kwargs: Any,
+    ) -> Union[str, List[Dict[str, Any]]]:
+        attempts = 0
+        last_error: Optional[Exception] = None
+        while attempts < 8:
             try:
-                res = request(
-                url=
-                "",
-                model=self.model,
-                messages= messages,
-                temperature=temperature,
-                top_p=top_p,
-                n=n,key="",
-                    **k)
-                if n==1 and single:
-                    response_clean = res["choices"][0]["message"]["content"]
+                result = self._request(messages, temperature, top_p, n, **kwargs)
+                choices = result.get("choices", [])
+                if n == 1 and single:
+                    content = choices[0]["message"]["content"]
                 else:
-                    response_clean = res["choices"]
-                # print(self.step)
-                if self.step!="prepare_train_queries":
-                    self.log_record(messages, response_clean)  # 记录对话内容
-                break
-
-            except Exception as e:
-                count += 1
+                    content = choices
+                if self.step != "prepare_train_queries":
+                    self.log_record(messages, content)
+                return content
+            except Exception as exc:
+                attempts += 1
+                last_error = exc
                 time.sleep(2)
-                # print(messages)
-                print(e, count, self.Cost,res)
-
-        self.Cost += res["usage"]['prompt_tokens'] / 1000 * 0.042 + res[
-            "usage"]["completion_tokens"] / 1000 * 0.126
-        return response_clean
-    
+        raise RuntimeError(f"Model request failed after retries: {last_error}")
 
 
-class deep_seek(req):
+class OpenRouterReq(BaseReq):
+    def __init__(self, step: str, model: str) -> None:
+        super().__init__(step, model)
+        self.api_url = os.getenv("OPENROUTER_API_URL", "https://openrouter.ai/api/v1/chat/completions")
+        self.api_key = os.getenv("OPENROUTER_API_KEY", "")
+        self.site_url = os.getenv("OPENROUTER_SITE_URL", "")
+        self.app_name = os.getenv("OPENROUTER_APP_NAME", "OpenSearch-SQL")
+        self.timeout = float(os.getenv("OPENROUTER_TIMEOUT", "45"))
 
-    def __init__(self,model) -> None:
-        super().__init__(model)
-    def get_ans(self, messages, temperature=0.0, debug=False):
-        count = 0
+    def _headers(self) -> Dict[str, str]:
+        if not self.api_key:
+            raise ValueError("OPENROUTER_API_KEY is required for OpenRouter models.")
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        if self.site_url:
+            headers["HTTP-Referer"] = self.site_url
+        if self.app_name:
+            headers["X-Title"] = self.app_name
+        return headers
 
-        while count < 8:
+    def _request(
+        self,
+        messages: str,
+        temperature: float,
+        top_p: Optional[float],
+        n: int,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        optional_keys = {
+            "stop",
+            "presence_penalty",
+            "frequency_penalty",
+            "response_format",
+            "seed",
+            "tools",
+            "tool_choice",
+        }
+        extras = {k: v for k, v in kwargs.items() if k in optional_keys}
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": "You are an SQL expert, skilled in handling SQL-related tasks."},
+                {"role": "user", "content": messages},
+            ],
+            "max_tokens": 800,
+            "temperature": temperature,
+            "n": n,
+            **extras,
+        }
+        if top_p is not None:
+            payload["top_p"] = top_p
+        response = requests.post(self.api_url, json=payload, headers=self._headers(), timeout=self.timeout)
+        response.raise_for_status()
+        return response.json()
+
+    def get_ans(
+        self,
+        messages: str,
+        temperature: float = 0.0,
+        top_p: Optional[float] = None,
+        n: int = 1,
+        single: bool = True,
+        **kwargs: Any,
+    ) -> Union[str, List[Dict[str, Any]]]:
+        attempts = 0
+        last_error: Optional[Exception] = None
+        while attempts < 4:
             try:
-                url = "https://api.deepseek.com/chat/completions"
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization":
-                    ""
-                }
-
-                # 定义请求体
-                jsons = {
-                    "model":
-                    "deepseek-coder",
-                    "temperture":
-                    temperature,
-                    "top_p":
-                    0.9,
-                    "messages": [{
-                        "role": "system",
-                        "content": "You are a helpful assistant."
-                    }, {
-                        "role": "user",
-                        "content": messages
-                    }]
-                }
-
-                # 发送POST请求
-                response = requests.post(url, headers=headers, json=jsons)
-                if debug:
-                    print(response.json)
-                ans = response.json()['choices'][0]['message']['content']
-                break
-            except Exception as e:
-                count += 1
+                result = self._request(messages, temperature, top_p, n, **kwargs)
+                choices = result.get("choices", [])
+                if n == 1 and single:
+                    content = choices[0]["message"]["content"]
+                else:
+                    content = choices
+                if self.step != "prepare_train_queries":
+                    self.log_record(messages, content)
+                return content
+            except Exception as exc:
+                attempts += 1
+                last_error = exc
                 time.sleep(2)
-                print(e, count, self.Cost, response.json())
-        return ans
-
-
-class qwenmax(req):
-
-    def __init__(self, model) -> None:
-        super().__init__(model)
-        dashscope.api_key = ""
- 
-
-    def get_ans(self, messages, temperature=0.0, debug=False):
-        count = 0
-
-        while count < 8:
-            try:
-                response = dashscope.Generation.call(model=self.model,
-                                                     temperature=temperature,
-                                                     prompt=messages)
-                self.Cost += response.usage.input_tokens / 1000 * 0.04 + response.usage.output_tokens / 1000 * 0.12
-                return response.output['text']
-            except:
-                count += 1
-                time.sleep(5)
-                print(response.code, response.message)
-
-
-class sft_req(req):
-
-    def __init__(self,model) -> None:
-        super().__init__(model)
-        self.device = "cuda:0"
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            "",
-            trust_remote_code=True,
-            padding_side="right",
-            use_fast=True)
-        self.tokenizer.pad_token = self.tokenizer.eos_token = "<|EOT|>"
-        # drop device_map if running on CPU
-        self.model = AutoModelForCausalLM.from_pretrained(
-            "",
-            torch_dtype=torch.bfloat16,
-            device_map=self.device).eval()
-
-    def get_ans(self, text, temperature=0.0):
-        messages = [{
-            "role":
-            "system",
-            "content":
-            "You are an AI programming assistant, utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer."
-        }, {
-            "role": "user",
-            "content": text
-        }]
-        inputs = self.tokenizer.apply_chat_template(messages,
-                                                    add_generation_prompt=True,
-                                                    tokenize=False)
-        model_inputs = self.tokenizer([inputs],
-                                      return_tensors="pt",
-                                      max_length=8000).to("cuda")
-        # tokenizer.eos_token_id is the id of <|EOT|> token
-        generated_ids = self.model.generate(
-            model_inputs.input_ids,
-            attention_mask=model_inputs["attention_mask"],
-            max_new_tokens=800,
-            do_sample=False,
-            eos_token_id=self.tokenizer.eos_token_id,
-            pad_token_id=self.tokenizer.pad_token_id)
-        generated_ids = [
-            output_ids[len(input_ids):] for input_ids, output_ids in zip(
-                model_inputs.input_ids, generated_ids)
-        ]
-
-        response = self.tokenizer.decode(generated_ids[0][:-1],
-                                         skip_special_tokens=True).strip()
-        return response
-
-
-
-
-
+        raise RuntimeError(f"OpenRouter request failed after retries: {last_error}")

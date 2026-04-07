@@ -103,9 +103,8 @@ class db_agent:
                 print(e)
                 dic[col] = "", ""
         # 获取外键信息
-        row = list(
-            cursor.execute(f"SELECT * FROM `{table_name}` LIMIT 1").fetchall()
-            [0])
+        sample_rows = cursor.execute(f"SELECT * FROM `{table_name}` LIMIT 1").fetchall()
+        row = list(sample_rows[0]) if sample_rows else [None] * len(df.columns)
         for i, col in enumerate(df.columns):
             try:
                 vals = df[col].dropna().drop_duplicates().iloc[:3].values
@@ -154,22 +153,27 @@ class db_agent:
         tables = cursor.execute(sql).fetchall()
         db_info = []
         db_col = dict()
-        file_list = os.listdir(table_dir)
-        files_emb = model.encode(file_list, show_progress_bar=False)
+        file_list = os.listdir(table_dir) if os.path.isdir(table_dir) else []
+        files_emb = model.encode(file_list, show_progress_bar=False) if file_list else []
         for table in tables:
             if table[0] == 'sqlite_sequence':
                 continue
-            files_sim = (files_emb @ model.encode(table[0] + '.csv',
-                                                  show_progress_bar=False).T)
-            if max(files_sim) > 0.9:
-                file = os.path.join(table_dir, file_list[files_sim.argmax()])
+            if file_list:
+                files_sim = (files_emb @ model.encode(table[0] + '.csv', show_progress_bar=False).T)
+                if max(files_sim) > 0.9:
+                    file = os.path.join(table_dir, file_list[files_sim.argmax()])
+                else:
+                    file = os.path.join(table_dir, table[0] + '.csv')
             else:
-                file = os.path.join(table_dir, table[0] + '.csv')
+                file = ""
 
             try:
-                with open(file, 'rb') as f:
-                    result = chardet.detect(f.read())
-                table_df = pd.read_csv(file, encoding=result['encoding'])
+                if file and os.path.isfile(file):
+                    with open(file, 'rb') as f:
+                        result = chardet.detect(f.read())
+                    table_df = pd.read_csv(file, encoding=result['encoding'])
+                else:
+                    table_df = pd.DataFrame()
             except Exception as e:
                 print(e)
                 table_df = pd.DataFrame()
@@ -255,9 +259,8 @@ class db_agent_string(db_agent):
                 print(e)
                 dic[col] = "", ""
         # 获取外键信息
-        row = list(
-            cursor.execute(f"SELECT * FROM `{table_name}` LIMIT 1").fetchall()
-            [0])
+        sample_rows = cursor.execute(f"SELECT * FROM `{table_name}` LIMIT 1").fetchall()
+        row = list(sample_rows[0]) if sample_rows else [None] * len(df.columns)
         for i, col in enumerate(df.columns):
             try:
                 df_tmp=df[col].dropna().drop_duplicates()

@@ -35,7 +35,11 @@ def vote_single(vote_all,mod="answer",SQLs=[]):
     maxm = max(vote_M)
     # print(maxm,ans)
     min_t = 1000000
-    sql_0=sql_raw_parse(SQLs[0], False)[0] 
+    if isinstance(SQLs, str):
+        sql_candidates = [SQLs]
+    else:
+        sql_candidates = SQLs
+    sql_0 = sql_raw_parse(sql_candidates[0], False)[0]
     ans = sql_0 
     # ans=
     # print(vote_M)
@@ -55,6 +59,8 @@ def vote(task: Any, execution_history: Dict[str, Any]) -> Dict[str, Any]:
 
     vote = get_last_node_result(execution_history, "align_correct")["vote"]
     SQLs=get_last_node_result(execution_history, "candidate_generate")["SQL"]# 兜底
+    if isinstance(SQLs, str):
+        SQLs = [SQLs]
 
     ans_correct,maxm,min_t,vote_M=vote_single(vote,"correct_ans",SQLs)
     # align_ans,maxm,min_t,vote_M=vote_single(vote,"align_ans",SQLs)
@@ -77,6 +83,5 @@ def vote(task: Any, execution_history: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     return response
-
 
 

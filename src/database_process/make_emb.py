@@ -2,14 +2,17 @@ import pickle
 import gzip, re
 import tqdm, json, random
 import pandas as pd
-import torch
 import sqlite3, os
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import euclidean_distances
 import argparse
 import logging
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from runner.text_encoder import get_text_encoder
+
+device = 'cpu'
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 uuid_pattern = re.compile(
@@ -77,7 +80,7 @@ def make_emb_all(data_dir, database, bertmodel):
     database=os.path.join(data_dir,database)
     data_dir=os.path.join(data_dir,"data_preprocess","dev.json")
     # init model
-    bert_model = SentenceTransformer(bertmodel, device=device, cache_folder='model/')
+    bert_model = get_text_encoder(bertmodel, device=device, cache_folder='model/')
     
     # load data
     Q = pd.read_json(data_dir)

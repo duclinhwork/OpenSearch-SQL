@@ -16,6 +16,8 @@ class DES:
 
         # find the most similar question in train dataset
         all_pair = []
+        if not self.DB_emb:
+            return []
         for key in self.DB_emb:
             embs = self.DB_emb[key]
 
@@ -39,6 +41,8 @@ class DES:
         if len(value) == 0:
             return
         col_key_inst = self.get_examples([value], topk)
+        if not col_key_inst:
+            return
         self.logger.info(
             "value\n %s",
             f"{value} {self.col_values[col_key_inst[0][2]][col_key_inst[0][1]]}"
@@ -146,6 +150,8 @@ class DES_new(DES):
         if len(value) == 0:
             return
         col_key_inst = self.get_examples([value], topk)
+        if not col_key_inst:
+            return
         # self.logger.info(
         #     "value\n %s",
         #     f"{value} {self.col_values[col_key_inst[0][2]][col_key_inst[0][1]]}"

@@ -4,7 +4,7 @@ from pathlib import Path
 from pipeline.utils import node_decorator,get_last_node_result
 from pipeline.pipeline_manager import PipelineManager
 from runner.database_manager import DatabaseManager
-from sentence_transformers import SentenceTransformer
+from runner.text_encoder import get_text_encoder
 from llm.model import model_chose
 from llm.db_conclusion import find_foreign_keys_MYSQL_like
 from llm.prompts import *
@@ -20,7 +20,7 @@ def column_retrieve_and_other_info(task: Any, execution_history: Dict[str, Any])
     emb_dir=paths.emb_dir
     tables_info_dir=paths.db_tables
     chat_model = model_chose(node_name,config["engine"])
-    bert_model = SentenceTransformer(config["bert_model"], device=config["device"])
+    bert_model = get_text_encoder(config["bert_model"], device=config["device"])
 
     all_db_col = get_last_node_result(execution_history, "generate_db_schema")["db_col_dic"]#返回最后面等于 参数名的结果
     origin_col = get_last_node_result(execution_history, "extract_query_noun")["col"]
@@ -35,7 +35,10 @@ def column_retrieve_and_other_info(task: Any, execution_history: Dict[str, Any])
     if emb_values_dic.get(db):
         DB_emb, col_values = emb_values_dic[db]
     else:
-        DB_emb, col_values = load_emb(db, emb_dir)
+        try:
+            DB_emb, col_values = load_emb(db, emb_dir)
+        except Exception:
+            DB_emb, col_values = {}, {}
         emb_values_dic[db] = [DB_emb, col_values]
 
     db_col = {x: all_db_col[x][0] for x in all_db_col }  ## db string
@@ -56,13 +59,20 @@ def column_retrieve_and_other_info(task: Any, execution_history: Dict[str, Any])
 
     column=ColumnUpdater(db_col).col_suffix(cols_select)
     # values = [f"{x[0]}: '{x[1]}'" for x in L_values]
-    count=0
-    while count<3:
-        try:
-            q_order=query_order(task.raw_question,chat_model,db_check_prompts().select_prompt,temperature=config['temperature'])
-            break
-        except:
-            count+=1
+    q_order = ""
+    if not config.get("disable_query_order", True):
+        count = 0
+        while count < 3:
+            try:
+                q_order = query_order(
+                    task.raw_question,
+                    chat_model,
+                    db_check_prompts().select_prompt,
+                    temperature=config["temperature"],
+                )
+                break
+            except Exception:
+                count += 1
 
     # # q_order = f"The content of the SELECT statement should only include: {q_order}"
     # q_order=""
@@ -107,4 +117,3 @@ def json_ext(jsonf):
             ans.append(x["Extract"]["J"])
             judge = True
     return ans, judge
-

@@ -324,7 +324,7 @@ class soft_check:
             _, al, bx = join_mutil[0]
 
             try:
-                SQL, flag = func_timeout(180 * 8,
+                SQL, flag = func_timeout(JOIN_FIX_TIMEOUT,
                                          join_exec,
                                          args=(db, bx, al, question, SQL,
                                                self.chat_model))
@@ -604,7 +604,7 @@ def sql_exec(SQL, db):
 def get_sql_ans(SQL,db_sqlite_path):
     try:
             # dbt = os.path.join(DB_dir, db, db + ".sqlite")
-        ans, time_cost = func_timeout(180, sql_exec, args=(SQL, db_sqlite_path))
+        ans, time_cost = func_timeout(SQL_EXEC_TIMEOUT, sql_exec, args=(SQL, db_sqlite_path))
     except FunctionTimedOut:
         ans,time_cost=[],100000
         print("time out")
@@ -643,10 +643,12 @@ def process_sql(Dcheck, SQL,L_values, values, question,
     nocse = True
     ans = set()
     time_cost = 10000000
+    align_ans = None
+    correct_ans = None
 
 
     try:
-        SQL, nocse = func_timeout(540,
+        SQL, nocse = func_timeout(CORRECT_SQL_TIMEOUT,
                                   Dcheck.correct_sql,
                                   args=(db_sqlite_path, SQL, question, new_db_info,
                                         hint, key_col_des, tmp_prompt, db_col,
@@ -659,8 +661,6 @@ def process_sql(Dcheck, SQL,L_values, values, question,
         ans,time_cost=get_sql_ans(SQL, db_sqlite_path)
         # align_ans=get_sql_ans(align_SQL, db_sqlite_path)
         # correct_ans=get_sql_ans(SQL_correct, db_sqlite_path)
-        align_ans=None
-        correct_ans=None
     return sql_history,SQL,ans,nocse,time_cost,align_SQL,align_ans,SQL_correct,correct_ans
 
 def muti_process_sql(Dcheck, SQLs, L_values, values, question,
@@ -683,7 +683,7 @@ def muti_process_sql(Dcheck, SQLs, L_values, values, question,
         for future in as_completed(future_to_sql):
             count, tmp_SQL = future_to_sql[future]
             try:
-                sql_history, SQL, ans, none_c, time_cost, align_SQL,align_ans,SQL_correct,correct_ans = future.result(timeout=700)
+                sql_history, SQL, ans, none_c, time_cost, align_SQL,align_ans,SQL_correct,correct_ans = future.result(timeout=ALIGN_FUTURE_TIMEOUT)
                 
                 # 将结果添加到 vote
                 vote.append({
@@ -734,4 +734,7 @@ def muti_process_sql(Dcheck, SQLs, L_values, values, question,
                 none_case = True
     return vote, none_case
 
-
+SQL_EXEC_TIMEOUT = int(os.getenv("SQL_EXEC_TIMEOUT", "180"))
+CORRECT_SQL_TIMEOUT = int(os.getenv("CORRECT_SQL_TIMEOUT", "540"))
+ALIGN_FUTURE_TIMEOUT = int(os.getenv("ALIGN_FUTURE_TIMEOUT", "700"))
+JOIN_FIX_TIMEOUT = int(os.getenv("JOIN_FIX_TIMEOUT", str(180 * 8)))

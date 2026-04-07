@@ -31,7 +31,7 @@ class Task:
         Args:
             task_data (Dict[str, Any]): A dictionary containing task data.
         """
-        self.question_id = task_data["question_id"]
+        self.question_id = task_data.get("question_id", 0)
         self.db_id = task_data["db_id"]
 ## replace
         # self.question = task_data["question"]
@@ -42,8 +42,8 @@ class Task:
 ##
         # self.raw_question=task_data["raw_question"]
 ##
-        self.raw_question=task_data["question"]
-        self.evidence=task_data["evidence"]
+        self.raw_question=task_data.get("raw_question", task_data.get("question", ""))
+        self.evidence=task_data.get("evidence", "")
         self.question=(self.raw_question+" "+self.evidence).strip()
         if self.evidence=="":
             self.evidence="None"#问题1

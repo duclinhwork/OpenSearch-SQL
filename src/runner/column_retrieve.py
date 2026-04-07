@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-import torch
+import numpy as np
 
 class ColumnRetriever:
     def __init__(self, bert_model, tables_info_dir):
@@ -90,10 +90,13 @@ class ColumnRetriever:
         return ans
 
     def same_pick(self,l,m_ans,num_pick,shold=0.7):
-        all_col = set((torch.topk(
-            m_ans,
-            num_pick).indices[torch.topk(m_ans, num_pick).values > shold]).tolist())
-        all_col=set(l[x] for x in all_col)
+        scores = np.asarray(m_ans)
+        if scores.ndim == 1:
+            scores = scores.reshape(1, -1)
+        flattened = scores.max(axis=0)
+        if len(flattened) == 0:
+            return set()
+        top_indices = np.argsort(flattened)[::-1][:num_pick]
+        all_col = {l[idx] for idx in top_indices if flattened[idx] > shold}
         return all_col
-
 

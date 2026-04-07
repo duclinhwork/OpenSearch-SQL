@@ -1,10 +1,10 @@
 import logging
 from typing import Any, Dict, List
 from pathlib import Path
-from sentence_transformers import SentenceTransformer
 from pipeline.utils import node_decorator,get_last_node_result
 from pipeline.pipeline_manager import PipelineManager
 from runner.database_manager import DatabaseManager
+from runner.text_encoder import get_text_encoder
 from pipeline.utils import make_newprompt
 from llm.model import model_chose
 from llm.db_conclusion import *
@@ -20,7 +20,7 @@ def align_correct(task: Any,  execution_history: List[Dict[str, Any]]) -> Dict[s
     correct_fewshot_json=paths.db_fewshot2_path
     db_sqlite_path=paths.db_path
     prompts_template=db_check_prompts()
-    bert_model = SentenceTransformer(config["bert_model"], device=config["device"])
+    bert_model = get_text_encoder(config["bert_model"], device=config["device"])
     with open(fewshot_path) as f:## fewshot
         df_fewshot = json.load(f)
     chat_model = model_chose(node_name,config["engine"])
@@ -35,6 +35,25 @@ def align_correct(task: Any,  execution_history: List[Dict[str, Any]]) -> Dict[s
     question = get_last_node_result(execution_history, "candidate_generate")["rewrite_question"]# divid update question
 
     SQLs=get_last_node_result(execution_history, "candidate_generate")["SQL"]
+    if isinstance(SQLs, str):
+        SQLs = [SQLs]
+    if config.get("skip_align", False):
+        normalized = [sql_raw_parse(x, False)[0] for x in SQLs]
+        vote = [
+            {
+                "sql_history": {"skip_align": sql},
+                "sql": sql,
+                "answer": set(),
+                "count": 1,
+                "time_cost": 0,
+                "align_sql": sql,
+                "align_ans": None,
+                "correct_sql": sql,
+                "correct_ans": None,
+            }
+            for sql in normalized
+        ]
+        return {"vote": vote, "none_case": True}
 
     db=task.db_id
     hint=task.evidence
@@ -70,9 +89,6 @@ def align_correct(task: Any,  execution_history: List[Dict[str, Any]]) -> Dict[s
     }
 
     return response
-
-
-
 
 
 

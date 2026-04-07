@@ -75,3 +75,45 @@ You can also use the fewshot data directly from the Bird path.
       url={https://arxiv.org/abs/2502.14913}, 
 }
 ```
+
+## ViText2SQL (Vietnamese) Quick Start
+This repository now includes a compatibility path for running OpenSearch-SQL on ViText2SQL.
+
+1. Prepare Vietnamese data in Bird-like layout:
+```bash
+bash run/run_vi_prepare.sh
+```
+
+2. Run core pipeline (up to candidate generation):
+```bash
+OPENROUTER_API_KEY=... OPENROUTER_MODEL=minimax/minimax-m2.5:free bash run/run_vi_core.sh
+```
+
+3. Run full pipeline (includes align/vote/evaluation):
+```bash
+OPENROUTER_API_KEY=... OPENROUTER_MODEL=minimax/minimax-m2.5:free bash run/run_vi_main.sh
+```
+
+Detailed Vietnamese migration/reproduction notes:
+`docs/vitext2sql_opensearch_sql_guide_vi.md`
+
+## MultiSpider Vietnamese Quick Start (BIRD-like)
+Use MultiSpider-VI when you need Vietnamese questions + SQL + real SQLite databases.
+
+1. Prepare dataset and embeddings:
+```bash
+MAX_DATABASES=0 bash run/run_multispider_vi_prepare.sh
+```
+
+2. Run core pipeline:
+```bash
+OPENROUTER_API_KEY=... OPENROUTER_MODEL=minimax/minimax-m2.5:free bash run/run_multispider_vi_core.sh
+```
+
+3. Run full pipeline:
+```bash
+OPENROUTER_API_KEY=... OPENROUTER_MODEL=minimax/minimax-m2.5:free bash run/run_multispider_vi_main.sh
+```
+
+Project experiment/change log:
+`docs/project_change_log.md`
