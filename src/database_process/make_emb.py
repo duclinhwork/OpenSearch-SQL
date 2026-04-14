@@ -64,7 +64,7 @@ def save_emb(dicts, dbname, emb_dir):
         pickle.dump(dicts, pkl_file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_emb(dbname, emb_dir="Bird/emb"):
+def load_emb(dbname, emb_dir="emb"):
     with gzip.open(os.path.join(emb_dir, f'{dbname}.pkl.gz'),
                    'rb') as pkl_file:
         data = pickle.load(pkl_file)

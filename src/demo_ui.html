@@ -1,0 +1,1460 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenSearch-SQL Demo UI</title>
+  <style>
+    :root {
+      --bg: #f7efe2;
+      --bg-soft: #fbf6ee;
+      --card: rgba(255, 252, 247, 0.9);
+      --card-strong: rgba(255, 248, 239, 0.97);
+      --line: rgba(92, 63, 28, 0.14);
+      --text: #24170f;
+      --muted: #6a5849;
+      --accent: #ba5d28;
+      --accent-2: #0c5f67;
+      --ok: #2f7d4a;
+      --warn: #aa6b1d;
+      --error: #ab3838;
+      --shadow: 0 24px 64px rgba(68, 38, 8, 0.11);
+      --radius: 24px;
+      --mono: "Iosevka", "IBM Plex Mono", "SFMono-Regular", monospace;
+      --sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+      --display: "Bricolage Grotesque", "Avenir Next", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(186, 93, 40, 0.16), transparent 30%),
+        radial-gradient(circle at 100% 0%, rgba(12, 95, 103, 0.15), transparent 28%),
+        linear-gradient(180deg, #f9f3e7 0%, #f6eee2 55%, #f8f3ea 100%);
+    }
+
+    .page {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      gap: 22px;
+    }
+
+    .hero,
+    .step,
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero {
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero-top,
+    .section-head,
+    .inline-row,
+    .meta-row,
+    .badge-row,
+    .action-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      margin: 0;
+      font-family: var(--display);
+      line-height: 1.05;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.3rem);
+      max-width: 14ch;
+    }
+
+    h2 {
+      font-size: 1.45rem;
+    }
+
+    .hero p,
+    .step p,
+    .muted {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .flow-chip {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(92, 63, 28, 0.1);
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .flow-chip strong {
+      display: block;
+      font-family: var(--display);
+      margin-bottom: 4px;
+    }
+
+    .step {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .step-head {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .step-no {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-family: var(--display);
+      font-size: 1.4rem;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), #7c321a);
+      box-shadow: 0 14px 28px rgba(124, 50, 26, 0.22);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .subtle {
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid rgba(92, 63, 28, 0.1);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .kpi {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(92, 63, 28, 0.1);
+    }
+
+    .kpi .label {
+      margin-bottom: 8px;
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .kpi .value {
+      font-family: var(--display);
+      font-size: 1.22rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.74);
+      font-size: 0.84rem;
+    }
+
+    .badge.ok {
+      color: var(--ok);
+      border-color: rgba(47, 125, 74, 0.24);
+    }
+
+    .badge.warn {
+      color: var(--warn);
+      border-color: rgba(170, 107, 29, 0.26);
+    }
+
+    .badge.error {
+      color: var(--error);
+      border-color: rgba(171, 56, 56, 0.24);
+    }
+
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(92, 63, 28, 0.2);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--accent);
+      font-size: 0.76rem;
+      font-weight: 800;
+      cursor: help;
+      vertical-align: text-top;
+      margin-left: 6px;
+    }
+
+    .label-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      font: inherit;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(92, 63, 28, 0.14);
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--text);
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(186, 93, 40, 0.45);
+      box-shadow: 0 0 0 3px rgba(186, 93, 40, 0.14);
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      font-family: var(--mono);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .question-box {
+      min-height: 128px;
+      font-family: var(--sans);
+      font-size: 0.96rem;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 700;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+      transform: none;
+    }
+
+    .btn-primary {
+      color: white;
+      background: linear-gradient(135deg, var(--accent), #7c321a);
+      box-shadow: 0 14px 32px rgba(124, 50, 26, 0.22);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .btn-danger {
+      background: rgba(255, 241, 241, 0.88);
+      color: var(--error);
+      border: 1px solid rgba(171, 56, 56, 0.18);
+    }
+
+    .flash {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .flash.show {
+      display: block;
+    }
+
+    .flash.ok {
+      color: var(--ok);
+      border-color: rgba(47, 125, 74, 0.22);
+    }
+
+    .flash.error {
+      color: var(--error);
+      border-color: rgba(171, 56, 56, 0.22);
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    .item,
+    .table-chip {
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(92, 63, 28, 0.1);
+      background: rgba(255, 255, 255, 0.74);
+      cursor: pointer;
+      transition: border-color 120ms ease, transform 120ms ease;
+    }
+
+    .item:hover,
+    .table-chip:hover {
+      transform: translateY(-1px);
+      border-color: rgba(186, 93, 40, 0.26);
+    }
+
+    .item.active,
+    .table-chip.active {
+      border-color: rgba(186, 93, 40, 0.45);
+      background: linear-gradient(180deg, rgba(255, 245, 236, 0.98), rgba(255, 252, 248, 0.97));
+    }
+
+    .item-title {
+      line-height: 1.45;
+      margin-top: 6px;
+    }
+
+    .mini {
+      font-size: 0.84rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .mono,
+    code,
+    pre {
+      font-family: var(--mono);
+    }
+
+    .codebox,
+    .darkbox {
+      border-radius: 18px;
+      padding: 16px;
+      overflow: auto;
+      min-height: 72px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: #181412;
+      color: #f9f3eb;
+    }
+
+    .sqlbox {
+      background: linear-gradient(180deg, #182129, #13181f);
+      color: #eef8ff;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.45;
+      font-size: 0.88rem;
+    }
+
+    details.trace-step {
+      border-radius: 20px;
+      border: 1px solid rgba(92, 63, 28, 0.1);
+      background: rgba(255, 253, 249, 0.88);
+      overflow: hidden;
+    }
+
+    details.trace-step summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    details.trace-step summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .trace-body {
+      padding: 0 16px 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .trace-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(92, 63, 28, 0.1);
+      vertical-align: top;
+    }
+
+    .empty {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px dashed rgba(92, 63, 28, 0.2);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.58);
+    }
+
+    @media (max-width: 1180px) {
+      .flow,
+      .grid-2,
+      .grid-3,
+      .trace-grid,
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 14px;
+      }
+
+      .step-head {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="eyebrow">OpenSearch-SQL Demo</div>
+          <h1>Giao diện demo theo luồng từng bước</h1>
+        </div>
+        <div class="badge-row" id="runtimeBadges"></div>
+      </div>
+      <p>Dùng giao diện này để giới thiệu project theo đúng trình tự: chọn dữ liệu, cấu hình runtime, chạy thử, rồi soi lại từng bước pipeline. Mọi nội dung chính đều có dấu <strong>?</strong> để rê chuột xem giải thích.</p>
+      <div class="flow">
+        <div class="flow-chip">
+          <strong>Bước 1</strong>
+          <div class="mini">Chọn dataset, mode, DB và sample cần demo.</div>
+        </div>
+        <div class="flow-chip">
+          <strong>Bước 2</strong>
+          <div class="mini">Nhập API key / model, chọn chế độ chạy sample hay câu hỏi tự nhập.</div>
+        </div>
+        <div class="flow-chip">
+          <strong>Bước 3</strong>
+          <div class="mini">Chạy thử pipeline hoặc SQL sandbox để minh họa dữ liệu nền.</div>
+        </div>
+        <div class="flow-chip">
+          <strong>Bước 4</strong>
+          <div class="mini">Xem kết quả cuối hoặc full trace từng node với input/output và prompt log.</div>
+        </div>
+      </div>
+      <div class="flash" id="flashBox"></div>
+    </section>
+
+    <section class="step">
+      <div class="step-head">
+        <div class="step-no">1</div>
+        <div>
+          <h2>Chọn dữ liệu demo <span class="help-dot" title="Bước này dùng để xác định dataset gốc, mode dev/train, danh sách sample và DB liên quan. Nếu muốn demo nhanh trên dữ liệu tiếng Việt đã chuẩn bị sẵn thì chọn MultiSpider_VI_Bird.">?</span></h2>
+          <p>Chọn dataset trước, sau đó lọc sample theo DB hoặc từ khóa để lấy case phù hợp cho demo.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-head">
+            <h3>Nguồn dữ liệu <span class="help-dot" title="Các dataset hiện lên ở đây là các thư mục local có sẵn cấu trúc data_preprocess/. UI sẽ quét tự động lúc mở trang.">?</span></h3>
+            <div id="datasetStats" class="badge-row"></div>
+          </div>
+
+          <div class="grid-3">
+            <label>
+              <span class="label-line">Dataset root <span class="help-dot" title="Thư mục dataset local đã được chuẩn bị sẵn cho OpenSearch-SQL. Sau khi dọn repo, dataset chính thức được hỗ trợ là MultiSpider_VI_Bird.">?</span></span>
+              <select id="datasetSelect"></select>
+            </label>
+
+            <label>
+              <span class="label-line">Chế độ dữ liệu <span class="help-dot" title="Chọn dev hoặc train. Danh sách sample, DB và file SQLite sẽ đổi theo mode này.">?</span></span>
+              <select id="modeSelect"></select>
+            </label>
+
+            <label>
+              <span class="label-line">Lọc theo DB <span class="help-dot" title="Giới hạn danh sách sample theo một database cụ thể để dễ demo theo chủ đề.">?</span></span>
+              <select id="dbFilterSelect"></select>
+            </label>
+          </div>
+
+          <label>
+            <span class="label-line">Tìm sample <span class="help-dot" title="Tìm theo nội dung câu hỏi hoặc db_id. Hữu ích khi cần lấy nhanh một ví dụ đếm, join, group by hoặc thời gian.">?</span></span>
+            <input id="sampleSearchInput" type="text" placeholder="Nhập câu hỏi hoặc db_id">
+          </label>
+
+          <div class="action-row">
+            <button class="btn-secondary" id="refreshSamplesBtn">Làm mới danh sách sample</button>
+            <span class="mini" id="sampleCountNote"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <h3>Danh sách sample <span class="help-dot" title="Bấm vào một sample để nạp sẵn câu hỏi, evidence, gold SQL và DB đích sang phần cấu hình chạy. Sau đó anh vẫn có thể sửa nội dung trước khi run.">?</span></h3>
+          </div>
+          <div class="list" id="sampleList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-head">
+        <div class="step-no">2</div>
+        <div>
+          <h2>Cấu hình runtime và nội dung chạy <span class="help-dot" title="Bước này cho phép cập nhật API key, model mặc định, chọn chạy theo sample hoặc tự nhập câu hỏi mới, rồi chỉnh câu hỏi/evidence/gold SQL trước khi gọi pipeline.">?</span></h2>
+          <p>UI hỗ trợ cả hai kiểu: demo bằng sample có sẵn hoặc tự nhập câu hỏi mới trên một DB bất kỳ.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-head">
+            <h3>Runtime settings <span class="help-dot" title="Thông tin ở đây được lưu trong session của server demo. Anh có thể nhập API key và model mặc định trực tiếp từ UI thay vì sửa file shell hoặc export biến môi trường bằng tay.">?</span></h3>
+            <div class="mini" id="settingsSummary">Chưa có thông tin runtime.</div>
+          </div>
+
+          <label>
+            <span class="label-line">Model mặc định <span class="help-dot" title="Model mặc định sẽ được dùng cho các lần chạy mới nếu ô Model cho từng lần chạy để trống. Ví dụ: gpt-4o-mini hoặc minimax/minimax-m2.5:free.">?</span></span>
+            <input id="defaultEngineInput" type="text" placeholder="gpt-4o-mini">
+          </label>
+
+          <label>
+            <span class="label-line">OpenAI API key <span class="help-dot" title="Dùng cho các model kiểu OpenAI-compatible như gpt, claude, gemini khi repo đang map qua endpoint tương thích. Để trống nếu không muốn thay key đang lưu.">?</span></span>
+            <input id="openaiKeyInput" type="password" placeholder="Nhập key mới nếu muốn cập nhật">
+          </label>
+
+          <label>
+            <span class="label-line">OpenRouter API key <span class="help-dot" title="Dùng cho các model có dạng provider/model như minimax/minimax-m2.5:free hoặc qwen/... Để trống nếu không muốn thay key đang lưu.">?</span></span>
+            <input id="openrouterKeyInput" type="password" placeholder="Nhập key mới nếu muốn cập nhật">
+          </label>
+
+          <div class="action-row">
+            <button class="btn-primary" id="saveSettingsBtn">Lưu runtime settings</button>
+            <button class="btn-danger" id="clearOpenAIKeyBtn">Xóa OpenAI key</button>
+            <button class="btn-danger" id="clearOpenRouterKeyBtn">Xóa OpenRouter key</button>
+          </div>
+
+          <div class="mini">Mẹo: nếu model có dấu <span class="mono">/</span> như <span class="mono">minimax/minimax-m2.5:free</span> thì pipeline sẽ dùng OpenRouter.</div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <h3>Nội dung sẽ chạy <span class="help-dot" title="Phần này quyết định pipeline sẽ chạy trên sample có sẵn hay câu hỏi custom. Với custom mode, UI sẽ tự mượn một sample cùng DB làm neo few-shot để pipeline vẫn hoạt động.">?</span></h3>
+            <div class="mini" id="selectionSummary">Chưa chọn sample.</div>
+          </div>
+
+          <div class="grid-3">
+            <label>
+              <span class="label-line">Chế độ chạy <span class="help-dot" title="Sample: dùng question_id của sample đã chọn. Custom: dùng DB đã chọn và câu hỏi anh tự nhập, không bắt buộc phải trùng sample nào.">?</span></span>
+              <select id="runModeSelect">
+                <option value="sample">Theo sample</option>
+                <option value="custom">Tự nhập câu hỏi</option>
+              </select>
+            </label>
+
+            <label>
+              <span class="label-line">DB đích <span class="help-dot" title="Database mà pipeline sẽ dùng khi chạy. Với mode sample thì thường sẽ tự điền theo sample. Với mode custom thì đây là DB bắt buộc.">?</span></span>
+              <select id="runDbSelect"></select>
+            </label>
+
+            <label>
+              <span class="label-line">Model cho lần chạy này <span class="help-dot" title="Nếu để trống, UI sẽ dùng model mặc định đã lưu trong Runtime settings. Nếu điền giá trị ở đây thì chỉ override cho lần chạy hiện tại.">?</span></span>
+              <input id="engineInput" type="text" placeholder="Để trống để dùng model mặc định">
+            </label>
+          </div>
+
+          <div class="grid-3">
+            <label>
+              <span class="label-line">Pipeline preset <span class="help-dot" title="Full Pipeline chạy hết đến vote/evaluation. Dừng ở Candidate Generation thì phù hợp khi chỉ muốn minh họa bước sinh SQL.">?</span></span>
+              <select id="pipelinePresetSelect">
+                <option value="full">Full pipeline</option>
+                <option value="candidate_only">Dừng ở candidate_generate</option>
+              </select>
+            </label>
+
+            <label>
+              <span class="label-line">Kiểu hiển thị <span class="help-dot" title="Chỉ xem kết quả cuối hoặc xem toàn bộ trace từng bước. Khi demo với khán giả không chuyên thì có thể để Chỉ final.">?</span></span>
+              <select id="viewModeSelect">
+                <option value="trace">Xem full trace</option>
+                <option value="final">Chỉ xem final</option>
+              </select>
+            </label>
+
+            <label>
+              <span class="label-line">Số candidate SQL <span class="help-dot" title="Số lượng SQL ứng viên được sinh ở bước candidate_generate. Giá trị lớn hơn thường chậm hơn nhưng minh họa tốt cho align/vote.">?</span></span>
+              <input id="candidateCountInput" type="number" min="1" max="21" step="1" value="3">
+            </label>
+          </div>
+
+          <div class="grid-2">
+            <label>
+              <span class="label-line">Question <span class="help-dot" title="Câu hỏi tự nhiên đầu vào. Khi chọn sample, ô này sẽ được nạp sẵn nhưng anh có thể chỉnh lại để demo các biến thể.">?</span></span>
+              <textarea id="questionInput" class="question-box" placeholder="Nhập câu hỏi tiếng Việt hoặc tiếng Anh"></textarea>
+            </label>
+
+            <div class="card subtle">
+              <label>
+                <span class="label-line">Evidence / hint <span class="help-dot" title="Thông tin bổ sung cho câu hỏi. Một số dataset có trường evidence/hint; nếu không có thì có thể để trống.">?</span></span>
+                <textarea id="evidenceInput" placeholder="Gợi ý bổ sung cho câu hỏi"></textarea>
+              </label>
+
+              <label>
+                <span class="label-line">Gold SQL <span class="help-dot" title="Nếu có gold SQL thì UI sẽ cho chạy bước evaluation. Nếu để trống thì pipeline vẫn chạy nhưng sẽ bỏ qua đánh giá cuối.">?</span></span>
+                <textarea id="goldSqlInput" placeholder="Có thể để trống nếu chỉ muốn sinh SQL"></textarea>
+              </label>
+
+              <div class="action-row">
+                <label class="mini"><input id="skipAlignInput" type="checkbox"> Bỏ qua align_correct</label>
+                <label class="mini"><input id="disableQueryOrderInput" type="checkbox" checked> Tắt query_order</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-head">
+        <div class="step-no">3</div>
+        <div>
+          <h2>Khám phá DB và chạy thử <span class="help-dot" title="Một bên là SQL sandbox chỉ đọc để xem bảng/schema/rows thật. Bên còn lại là nơi bấm chạy pipeline, theo dõi trạng thái và xem lịch sử run gần đây.">?</span></h2>
+          <p>SQL sandbox giúp giải thích DB nền trước khi anh bấm chạy pipeline.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-head">
+            <h3>SQL sandbox <span class="help-dot" title="Chỉ cho phép lệnh đọc như SELECT, WITH, PRAGMA, EXPLAIN. Dùng để mở bảng, xem schema, và chứng minh DB thật có dữ liệu gì trước khi demo pipeline.">?</span></h3>
+          </div>
+
+          <div class="grid-2">
+            <label>
+              <span class="label-line">DB để xem <span class="help-dot" title="Chọn database để xem danh sách bảng và preview dữ liệu thật trong SQLite.">?</span></span>
+              <select id="dbBrowserSelect"></select>
+            </label>
+
+            <div class="action-row" style="align-self:end;">
+              <button class="btn-secondary" id="loadTablesBtn">Tải danh sách bảng</button>
+            </div>
+          </div>
+
+          <div class="list" id="tablesList"></div>
+          <div id="tablePreviewBox" class="empty">Chọn một bảng để xem schema và vài dòng dữ liệu mẫu.</div>
+
+          <label>
+            <span class="label-line">Read-only SQL <span class="help-dot" title="Nhập SELECT/WITH/PRAGMA/EXPLAIN để chạy trực tiếp trên SQLite local. Kết quả chỉ đọc, không sửa dữ liệu.">?</span></span>
+            <textarea id="sqlInput" class="sqlbox" spellcheck="false">SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;</textarea>
+          </label>
+
+          <div class="action-row">
+            <button class="btn-secondary" id="runSqlBtn">Chạy SQL</button>
+          </div>
+
+          <div id="sqlResultBox" class="empty">Kết quả SQL sẽ hiện ở đây.</div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <h3>Chạy pipeline <span class="help-dot" title="Bấm chạy để backend dùng đúng code pipeline thật của project. Do runtime hiện tại có singleton state, UI chỉ cho một live run cùng lúc để tránh va chạm.">?</span></h3>
+            <div class="mini" id="runStatusText">Chưa có run nào được chọn.</div>
+          </div>
+
+          <div class="action-row">
+            <button class="btn-primary" id="runBtn">Chạy thử pipeline</button>
+            <button class="btn-secondary" id="loadCurrentRunBtn">Nạp lại run hiện tại</button>
+          </div>
+
+          <div class="list" id="runsList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-head">
+        <div class="step-no">4</div>
+        <div>
+          <h2>Xem kết quả cuối và trace từng bước <span class="help-dot" title="Phần này là trung tâm demo: có KPI nhanh, SQL cuối, evaluation, đường dẫn artifact, và timeline từng node với input/output/prompt log.">?</span></h2>
+          <p>Nếu chọn chế độ “Chỉ xem final”, phần timeline sẽ được ẩn để tập trung vào đầu ra cuối cùng.</p>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="label">Trạng thái run</div>
+          <div class="value" id="kpiStatus">Idle</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Số bước xong</div>
+          <div class="value" id="kpiNodes">0</div>
+        </div>
+        <div class="kpi">
+          <div class="label">SQL cuối</div>
+          <div class="value" id="kpiFinal">--</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Evaluation</div>
+          <div class="value" id="kpiEval">--</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-head">
+            <h3>Kết quả cuối <span class="help-dot" title="Tóm tắt kết quả cuối cùng của run: SQL được chọn và thông tin evaluation nếu có gold SQL.">?</span></h3>
+          </div>
+          <div id="finalSummaryBox" class="empty">Chạy một case để xem kết quả cuối.</div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <h3>Artifact <span class="help-dot" title="Các đường dẫn file được sinh ra cho run hiện tại: request.json, thư mục logs, và thư mục result để anh mở trực tiếp ngoài terminal nếu cần.">?</span></h3>
+          </div>
+          <div id="artifactBox" class="empty">Đường dẫn artifact sẽ hiện sau khi run bắt đầu.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <h3>Timeline từng bước <span class="help-dot" title="Mỗi bước đều có trạng thái, thời gian chạy, input context, output đã serialize, prompt gửi vào model, và model output log nếu bước đó có gọi LLM.">?</span></h3>
+        </div>
+        <div id="traceContainer">
+          <div class="empty">Timeline trace sẽ hiện ở đây.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      bootstrap: null,
+      samples: [],
+      selectedSample: null,
+      currentRun: null,
+      pollTimer: null,
+    };
+
+    const els = {
+      runtimeBadges: document.getElementById("runtimeBadges"),
+      flashBox: document.getElementById("flashBox"),
+      datasetSelect: document.getElementById("datasetSelect"),
+      modeSelect: document.getElementById("modeSelect"),
+      dbFilterSelect: document.getElementById("dbFilterSelect"),
+      sampleSearchInput: document.getElementById("sampleSearchInput"),
+      refreshSamplesBtn: document.getElementById("refreshSamplesBtn"),
+      datasetStats: document.getElementById("datasetStats"),
+      sampleCountNote: document.getElementById("sampleCountNote"),
+      sampleList: document.getElementById("sampleList"),
+      defaultEngineInput: document.getElementById("defaultEngineInput"),
+      openaiKeyInput: document.getElementById("openaiKeyInput"),
+      openrouterKeyInput: document.getElementById("openrouterKeyInput"),
+      saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+      clearOpenAIKeyBtn: document.getElementById("clearOpenAIKeyBtn"),
+      clearOpenRouterKeyBtn: document.getElementById("clearOpenRouterKeyBtn"),
+      settingsSummary: document.getElementById("settingsSummary"),
+      selectionSummary: document.getElementById("selectionSummary"),
+      runModeSelect: document.getElementById("runModeSelect"),
+      runDbSelect: document.getElementById("runDbSelect"),
+      engineInput: document.getElementById("engineInput"),
+      pipelinePresetSelect: document.getElementById("pipelinePresetSelect"),
+      viewModeSelect: document.getElementById("viewModeSelect"),
+      candidateCountInput: document.getElementById("candidateCountInput"),
+      questionInput: document.getElementById("questionInput"),
+      evidenceInput: document.getElementById("evidenceInput"),
+      goldSqlInput: document.getElementById("goldSqlInput"),
+      skipAlignInput: document.getElementById("skipAlignInput"),
+      disableQueryOrderInput: document.getElementById("disableQueryOrderInput"),
+      dbBrowserSelect: document.getElementById("dbBrowserSelect"),
+      loadTablesBtn: document.getElementById("loadTablesBtn"),
+      tablesList: document.getElementById("tablesList"),
+      tablePreviewBox: document.getElementById("tablePreviewBox"),
+      sqlInput: document.getElementById("sqlInput"),
+      runSqlBtn: document.getElementById("runSqlBtn"),
+      sqlResultBox: document.getElementById("sqlResultBox"),
+      runBtn: document.getElementById("runBtn"),
+      loadCurrentRunBtn: document.getElementById("loadCurrentRunBtn"),
+      runsList: document.getElementById("runsList"),
+      runStatusText: document.getElementById("runStatusText"),
+      kpiStatus: document.getElementById("kpiStatus"),
+      kpiNodes: document.getElementById("kpiNodes"),
+      kpiFinal: document.getElementById("kpiFinal"),
+      kpiEval: document.getElementById("kpiEval"),
+      finalSummaryBox: document.getElementById("finalSummaryBox"),
+      artifactBox: document.getElementById("artifactBox"),
+      traceContainer: document.getElementById("traceContainer"),
+    };
+
+    async function fetchJSON(url, options = {}) {
+      const response = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || `Lỗi request: ${response.status}`);
+      }
+      return data;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function prettyJSON(value) {
+      return JSON.stringify(value ?? {}, null, 2);
+    }
+
+    function setFlash(message, tone = "ok") {
+      els.flashBox.textContent = message;
+      els.flashBox.className = `flash show ${tone}`;
+      clearTimeout(setFlash._timer);
+      setFlash._timer = setTimeout(() => {
+        els.flashBox.className = "flash";
+      }, 4200);
+    }
+
+    function badge(text, tone = "") {
+      return `<span class="badge ${tone}">${escapeHtml(text)}</span>`;
+    }
+
+    function selectedDataset() {
+      return els.datasetSelect.value;
+    }
+
+    function selectedMode() {
+      return els.modeSelect.value || "dev";
+    }
+
+    function datasetInfo() {
+      return state.bootstrap?.datasets.find((item) => item.name === selectedDataset());
+    }
+
+    function renderRuntimeBadges(settings) {
+      const badges = [];
+      badges.push(badge(`OpenAI key: ${settings.has_openai_api_key ? "đã lưu" : "chưa có"}`, settings.has_openai_api_key ? "ok" : "warn"));
+      badges.push(badge(`OpenRouter key: ${settings.has_openrouter_api_key ? "đã lưu" : "chưa có"}`, settings.has_openrouter_api_key ? "ok" : "warn"));
+      badges.push(badge(`Model mặc định: ${settings.default_engine || "--"}`));
+      els.runtimeBadges.innerHTML = badges.join("");
+      els.settingsSummary.textContent = `Model mặc định hiện tại: ${settings.default_engine || "--"}`;
+    }
+
+    function populateDatasetSelectors() {
+      const datasets = state.bootstrap.datasets;
+      els.datasetSelect.innerHTML = datasets.map((dataset) => `<option value="${escapeHtml(dataset.name)}">${escapeHtml(dataset.name)}</option>`).join("");
+      const initialDataset = datasets.find((item) => item.name === "MultiSpider_VI_Bird")?.name || datasets[0]?.name || "";
+      els.datasetSelect.value = initialDataset;
+      populateModeSelector();
+    }
+
+    function populateModeSelector() {
+      const info = datasetInfo();
+      const modes = info?.modes || [];
+      els.modeSelect.innerHTML = modes.map((mode) => `<option value="${mode}">${mode}</option>`).join("");
+      els.modeSelect.value = modes.includes("dev") ? "dev" : (modes[0] || "");
+      renderDatasetStats();
+    }
+
+    function renderDatasetStats() {
+      const info = datasetInfo();
+      if (!info) {
+        els.datasetStats.innerHTML = "";
+        return;
+      }
+      const mode = selectedMode();
+      els.datasetStats.innerHTML = [
+        badge(`sample: ${info.sample_counts?.[mode] ?? 0}`),
+        badge(`db: ${info.db_counts?.[mode] ?? 0}`),
+        badge(info.has_embeddings ? "emb: có" : "emb: chưa có", info.has_embeddings ? "ok" : "warn"),
+        badge((mode === "train" ? info.has_train_sqlite : info.has_dev_sqlite) ? "sqlite: có" : "sqlite: chưa có", (mode === "train" ? info.has_train_sqlite : info.has_dev_sqlite) ? "ok" : "warn"),
+      ].join("");
+    }
+
+    function syncDbOptions(dbIds) {
+      const options = dbIds.map((dbId) => `<option value="${escapeHtml(dbId)}">${escapeHtml(dbId)}</option>`).join("");
+      const currentRunDb = els.runDbSelect.value;
+      const currentBrowserDb = els.dbBrowserSelect.value;
+      els.runDbSelect.innerHTML = options;
+      els.dbBrowserSelect.innerHTML = options;
+      if (dbIds.includes(currentRunDb)) {
+        els.runDbSelect.value = currentRunDb;
+      }
+      if (dbIds.includes(currentBrowserDb)) {
+        els.dbBrowserSelect.value = currentBrowserDb;
+      }
+      if (!els.runDbSelect.value && dbIds.length) {
+        els.runDbSelect.value = dbIds[0];
+      }
+      if (!els.dbBrowserSelect.value && dbIds.length) {
+        els.dbBrowserSelect.value = dbIds[0];
+      }
+    }
+
+    async function loadSamples() {
+      const dataset = selectedDataset();
+      const mode = selectedMode();
+      if (!dataset || !mode) {
+        return;
+      }
+      const query = encodeURIComponent(els.sampleSearchInput.value.trim());
+      const dbId = encodeURIComponent(els.dbFilterSelect.value || "");
+      const data = await fetchJSON(`/api/datasets/${encodeURIComponent(dataset)}/samples?mode=${encodeURIComponent(mode)}&q=${query}&db_id=${dbId}&limit=80`);
+      state.samples = data.items;
+      els.dbFilterSelect.innerHTML = ['<option value="">Tất cả DB</option>', ...data.db_ids.map((db) => `<option value="${escapeHtml(db)}">${escapeHtml(db)}</option>`)].join("");
+      if (data.db_ids.includes(decodeURIComponent(dbId))) {
+        els.dbFilterSelect.value = decodeURIComponent(dbId);
+      }
+      syncDbOptions(data.db_ids);
+      renderSampleList();
+      els.sampleCountNote.textContent = `${state.samples.length} sample đang hiển thị`;
+      if (!state.selectedSample && state.samples.length) {
+        selectSample(state.samples[0]);
+      } else {
+        updateSelectionSummary();
+      }
+    }
+
+    function renderSampleList() {
+      if (!state.samples.length) {
+        els.sampleList.innerHTML = `<div class="empty">Không có sample nào khớp bộ lọc hiện tại.</div>`;
+        return;
+      }
+      els.sampleList.innerHTML = state.samples.map((sample) => {
+        const active = state.selectedSample?.question_id === sample.question_id ? "active" : "";
+        return `
+          <div class="item ${active}" data-question-id="${sample.question_id}">
+            <div class="meta-row">
+              <span>#${sample.question_id}</span>
+              <span>${escapeHtml(sample.db_id)}</span>
+            </div>
+            <div class="item-title">${escapeHtml(sample.question)}</div>
+          </div>
+        `;
+      }).join("");
+      for (const node of els.sampleList.querySelectorAll(".item")) {
+        node.addEventListener("click", () => {
+          const questionId = Number(node.dataset.questionId);
+          const sample = state.samples.find((item) => item.question_id === questionId);
+          if (sample) {
+            selectSample(sample);
+          }
+        });
+      }
+    }
+
+    function selectSample(sample) {
+      state.selectedSample = sample;
+      renderSampleList();
+      els.questionInput.value = sample.question || "";
+      els.evidenceInput.value = sample.evidence || "";
+      els.goldSqlInput.value = sample.sql || "";
+      els.runDbSelect.value = sample.db_id;
+      els.dbBrowserSelect.value = sample.db_id;
+      updateSelectionSummary();
+      loadTables().catch((error) => setFlash(error.message, "error"));
+    }
+
+    function updateSelectionSummary() {
+      const runMode = els.runModeSelect.value;
+      if (runMode === "sample") {
+        if (!state.selectedSample) {
+          els.selectionSummary.textContent = "Mode sample đang bật nhưng chưa chọn sample.";
+          return;
+        }
+        els.selectionSummary.innerHTML = `
+          <div><strong>Mode:</strong> sample</div>
+          <div><strong>question_id:</strong> <span class="mono">${state.selectedSample.question_id}</span></div>
+          <div><strong>db_id:</strong> <span class="mono">${escapeHtml(state.selectedSample.db_id)}</span></div>
+          <div><strong>Có thể sửa lại question/evidence/gold SQL trước khi chạy.</strong></div>
+        `;
+        return;
+      }
+      const runDb = els.runDbSelect.value || "--";
+      const anchor = state.selectedSample ? `question_id ${state.selectedSample.question_id}` : "sample đầu tiên cùng DB";
+      els.selectionSummary.innerHTML = `
+        <div><strong>Mode:</strong> custom</div>
+        <div><strong>DB đích:</strong> <span class="mono">${escapeHtml(runDb)}</span></div>
+        <div><strong>Neo few-shot:</strong> ${escapeHtml(anchor)}</div>
+        <div><strong>Có thể nhập câu hỏi hoàn toàn mới, không cần trùng sample.</strong></div>
+      `;
+    }
+
+    async function saveSettings(clearField = null) {
+      const payload = {
+        default_engine: els.defaultEngineInput.value.trim(),
+      };
+      if (els.openaiKeyInput.value.trim()) {
+        payload.openai_api_key = els.openaiKeyInput.value.trim();
+      }
+      if (els.openrouterKeyInput.value.trim()) {
+        payload.openrouter_api_key = els.openrouterKeyInput.value.trim();
+      }
+      if (clearField === "openai") {
+        payload.clear_openai_api_key = true;
+      }
+      if (clearField === "openrouter") {
+        payload.clear_openrouter_api_key = true;
+      }
+      const data = await fetchJSON("/api/settings", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      state.bootstrap.settings = data.settings;
+      renderRuntimeBadges(data.settings);
+      els.defaultEngineInput.value = data.settings.default_engine || "";
+      if (!els.engineInput.value.trim()) {
+        els.engineInput.value = data.settings.default_engine || "";
+      }
+      els.openaiKeyInput.value = "";
+      els.openrouterKeyInput.value = "";
+      setFlash("Đã cập nhật runtime settings.", "ok");
+    }
+
+    async function loadTables() {
+      const dataset = selectedDataset();
+      const mode = selectedMode();
+      const dbId = els.dbBrowserSelect.value;
+      if (!dataset || !dbId) {
+        els.tablesList.innerHTML = `<div class="empty">Chưa chọn DB để xem.</div>`;
+        return;
+      }
+      const data = await fetchJSON(`/api/datasets/${encodeURIComponent(dataset)}/tables?mode=${encodeURIComponent(mode)}&db_id=${encodeURIComponent(dbId)}`);
+      if (!data.items.length) {
+        els.tablesList.innerHTML = `<div class="empty">DB này chưa có bảng nào.</div>`;
+        return;
+      }
+      els.tablesList.innerHTML = data.items.map((table, index) => `<div class="table-chip ${index === 0 ? "active" : ""}" data-table="${escapeHtml(table)}">${escapeHtml(table)}</div>`).join("");
+      for (const chip of els.tablesList.querySelectorAll(".table-chip")) {
+        chip.addEventListener("click", () => selectTable(chip.dataset.table));
+      }
+      selectTable(data.items[0]);
+    }
+
+    async function selectTable(tableName) {
+      for (const chip of els.tablesList.querySelectorAll(".table-chip")) {
+        chip.classList.toggle("active", chip.dataset.table === tableName);
+      }
+      const data = await fetchJSON(`/api/datasets/${encodeURIComponent(selectedDataset())}/table-preview?mode=${encodeURIComponent(selectedMode())}&db_id=${encodeURIComponent(els.dbBrowserSelect.value)}&table=${encodeURIComponent(tableName)}&limit=8`);
+      els.tablePreviewBox.innerHTML = renderTablePreview(data);
+      els.sqlInput.value = `SELECT * FROM "${tableName}" LIMIT 20;`;
+    }
+
+    function renderTablePreview(data) {
+      const schema = data.schema.length ? `
+        <table>
+          <thead><tr><th>Cột</th><th>Kiểu</th><th>PK</th></tr></thead>
+          <tbody>
+            ${data.schema.map((col) => `<tr><td>${escapeHtml(col.name)}</td><td>${escapeHtml(col.type || "")}</td><td>${col.pk ? "yes" : ""}</td></tr>`).join("")}
+          </tbody>
+        </table>
+      ` : `<div class="mini">Không có schema để hiển thị.</div>`;
+      const rows = data.rows.length ? `
+        <table>
+          <thead><tr>${data.columns.map((name) => `<th>${escapeHtml(name)}</th>`).join("")}</tr></thead>
+          <tbody>
+            ${data.rows.map((row) => `<tr>${row.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>`).join("")}
+          </tbody>
+        </table>
+      ` : `<div class="mini">Không có dòng dữ liệu nào trong phần preview.</div>`;
+      return `
+        <div class="subtle">
+          <h4>Schema bảng: ${escapeHtml(data.table)}</h4>
+          ${schema}
+        </div>
+        <div class="subtle">
+          <h4>Dữ liệu mẫu</h4>
+          ${rows}
+        </div>
+      `;
+    }
+
+    async function runSql() {
+      const data = await fetchJSON("/api/sql-query", {
+        method: "POST",
+        body: JSON.stringify({
+          dataset: selectedDataset(),
+          data_mode: selectedMode(),
+          db_id: els.dbBrowserSelect.value,
+          sql: els.sqlInput.value,
+          limit: 30,
+        }),
+      });
+      if (!data.rows?.length) {
+        els.sqlResultBox.innerHTML = `<div class="empty">Query chạy thành công nhưng không trả ra dòng nào.</div>`;
+        return;
+      }
+      els.sqlResultBox.innerHTML = `
+        <table>
+          <thead><tr>${data.columns.map((name) => `<th>${escapeHtml(name)}</th>`).join("")}</tr></thead>
+          <tbody>${data.rows.map((row) => `<tr>${row.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table>
+      `;
+    }
+
+    function buildRunPayload() {
+      const runMode = els.runModeSelect.value;
+      if (runMode === "sample" && !state.selectedSample) {
+        throw new Error("Hãy chọn một sample trước khi chạy mode sample.");
+      }
+      return {
+        run_mode: runMode,
+        dataset: selectedDataset(),
+        data_mode: selectedMode(),
+        question_id: state.selectedSample?.question_id ?? "",
+        db_id: els.runDbSelect.value,
+        question: els.questionInput.value.trim(),
+        evidence: els.evidenceInput.value.trim(),
+        gold_sql: els.goldSqlInput.value.trim(),
+        pipeline_preset: els.pipelinePresetSelect.value,
+        view_mode: els.viewModeSelect.value,
+        engine: els.engineInput.value.trim(),
+        n_candidates: Number(els.candidateCountInput.value || 1),
+        skip_align: els.skipAlignInput.checked,
+        disable_query_order: els.disableQueryOrderInput.checked,
+      };
+    }
+
+    async function refreshRuns() {
+      const data = await fetchJSON("/api/runs");
+      renderRuns(data.runs);
+      return data.runs;
+    }
+
+    function renderRuns(runs) {
+      if (!runs.length) {
+        els.runsList.innerHTML = `<div class="empty">Chưa có run nào.</div>`;
+        return;
+      }
+      els.runsList.innerHTML = runs.map((run) => {
+        const active = state.currentRun?.id === run.id ? "active" : "";
+        const sql = run.final?.vote_sql || run.final?.candidate_sql || "--";
+        return `
+          <div class="item ${active}" data-run-id="${run.id}">
+            <div class="meta-row">
+              <span>${escapeHtml(run.status)}</span>
+              <span>${escapeHtml(run.db_id || "--")}</span>
+            </div>
+            <div class="item-title mono">${escapeHtml(run.id)}</div>
+            <div class="mini">${escapeHtml(run.run_mode || "sample")} · q=${escapeHtml(run.question_id || "--")} · ${escapeHtml((sql || "--").slice(0, 90))}</div>
+          </div>
+        `;
+      }).join("");
+      for (const item of els.runsList.querySelectorAll(".item")) {
+        item.addEventListener("click", () => loadRun(item.dataset.runId, false).catch((error) => setFlash(error.message, "error")));
+      }
+    }
+
+    async function startRun() {
+      const payload = buildRunPayload();
+      els.runBtn.disabled = true;
+      try {
+        const run = await fetchJSON("/api/runs", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setFlash("Đã bắt đầu chạy pipeline.", "ok");
+        await loadRun(run.id, true);
+        await refreshRuns();
+      } finally {
+        els.runBtn.disabled = false;
+      }
+    }
+
+    async function loadRun(runId, startPolling = false) {
+      const run = await fetchJSON(`/api/runs/${encodeURIComponent(runId)}`);
+      state.currentRun = run;
+      renderRun(run);
+      await refreshRuns();
+      if (state.pollTimer) {
+        clearInterval(state.pollTimer);
+        state.pollTimer = null;
+      }
+      if (startPolling || ["queued", "running"].includes(run.status)) {
+        state.pollTimer = setInterval(async () => {
+          try {
+            const current = await fetchJSON(`/api/runs/${encodeURIComponent(runId)}`);
+            state.currentRun = current;
+            renderRun(current);
+            await refreshRuns();
+            if (!["queued", "running"].includes(current.status)) {
+              clearInterval(state.pollTimer);
+              state.pollTimer = null;
+              setFlash(`Run đã chuyển sang trạng thái: ${current.status}`, current.status === "completed" ? "ok" : "error");
+            }
+          } catch (error) {
+            clearInterval(state.pollTimer);
+            state.pollTimer = null;
+            setFlash(error.message, "error");
+          }
+        }, 1500);
+      }
+    }
+
+    function renderRun(run) {
+      els.runStatusText.textContent = `run ${run.id} · ${run.status}`;
+      els.kpiStatus.textContent = run.status;
+      els.kpiNodes.textContent = String(run.trace?.length || 0);
+      els.kpiFinal.textContent = (run.final?.vote_sql || run.final?.candidate_sql || "--").slice(0, 18) || "--";
+      const voteEval = run.final?.evaluation?.vote;
+      els.kpiEval.textContent = voteEval ? `${voteEval.exec_res}/${voteEval.exec_err}` : "--";
+
+      els.finalSummaryBox.innerHTML = `
+        <div class="subtle">
+          <h4>SQL cuối</h4>
+          <div class="codebox sqlbox"><pre>${escapeHtml(run.final?.vote_sql || run.final?.candidate_sql || "--")}</pre></div>
+        </div>
+        <div class="subtle">
+          <h4>Evaluation</h4>
+          <div class="codebox"><pre>${escapeHtml(prettyJSON(run.final?.evaluation || {}))}</pre></div>
+        </div>
+        ${run.error ? `<div class="badge error">${escapeHtml(run.error)}</div>` : ""}
+      `;
+
+      els.artifactBox.innerHTML = `
+        <div class="subtle">
+          <div class="mini"><strong>result_directory:</strong> <span class="mono">${escapeHtml(run.result_directory || "--")}</span></div>
+          <div class="mini"><strong>request file:</strong> <span class="mono">${escapeHtml(run.artifact_file || "--")}</span></div>
+          <div class="mini"><strong>log file:</strong> <span class="mono">${escapeHtml(run.log_file || "--")}</span></div>
+        </div>
+      `;
+
+      renderTrace(run);
+    }
+
+    function renderTrace(run) {
+      if (els.viewModeSelect.value === "final") {
+        els.traceContainer.innerHTML = `<div class="empty">Timeline đang ẩn vì anh chọn chế độ “Chỉ xem final”.</div>`;
+        return;
+      }
+      if (!run.trace?.length) {
+        els.traceContainer.innerHTML = `<div class="empty">Chưa có bước nào hoàn thành.</div>`;
+        return;
+      }
+      els.traceContainer.innerHTML = run.trace.map((step, index) => renderTraceStep(step, index === run.trace.length - 1)).join("");
+    }
+
+    function renderTraceStep(step, open = false) {
+      const promptLogs = step.llm_log?.human?.length
+        ? step.llm_log.human.map((chunk, index) => `
+            <details class="subtle">
+              <summary>Prompt ${index + 1}</summary>
+              <div class="codebox"><pre>${escapeHtml(chunk)}</pre></div>
+            </details>
+          `).join("")
+        : `<div class="mini">Bước này không có prompt log hoặc chưa gọi LLM.</div>`;
+
+      const outputLogs = step.llm_log?.ai?.length
+        ? step.llm_log.ai.map((chunk, index) => `
+            <details class="subtle">
+              <summary>Model output ${index + 1}</summary>
+              <div class="codebox"><pre>${escapeHtml(chunk)}</pre></div>
+            </details>
+          `).join("")
+        : `<div class="mini">Bước này không có model output log.</div>`;
+
+      return `
+        <details class="trace-step" ${open ? "open" : ""}>
+          <summary>
+            <div class="meta-row">
+              <strong>${escapeHtml(step.title)}</strong>
+              <div class="badge-row">
+                ${badge(step.node_type)}
+                ${badge(step.status, step.status === "success" ? "ok" : (step.status === "error" ? "error" : ""))}
+                ${badge(`${step.duration_ms} ms`)}
+              </div>
+            </div>
+            <div class="mini">${escapeHtml(step.description)}</div>
+            <div class="mini"><strong>Tóm tắt:</strong> ${escapeHtml(step.highlight || "--")}</div>
+          </summary>
+          <div class="trace-body">
+            <div class="trace-grid">
+              <div class="subtle">
+                <h4>Input của bước</h4>
+                <div class="codebox"><pre>${escapeHtml(prettyJSON(step.input))}</pre></div>
+              </div>
+              <div class="subtle">
+                <h4>Output của bước</h4>
+                <div class="codebox"><pre>${escapeHtml(prettyJSON(step.output))}</pre></div>
+              </div>
+            </div>
+            <div class="trace-grid">
+              <div class="subtle">
+                <h4>Prompt log</h4>
+                ${promptLogs}
+              </div>
+              <div class="subtle">
+                <h4>Model output log</h4>
+                ${outputLogs}
+              </div>
+            </div>
+          </div>
+        </details>
+      `;
+    }
+
+    async function bootstrap() {
+      state.bootstrap = await fetchJSON("/api/bootstrap");
+      renderRuntimeBadges(state.bootstrap.settings);
+      populateDatasetSelectors();
+      els.defaultEngineInput.value = state.bootstrap.settings.default_engine || "";
+      els.engineInput.value = state.bootstrap.settings.default_engine || "";
+      els.runModeSelect.value = state.bootstrap.default_config.run_mode;
+      els.pipelinePresetSelect.value = state.bootstrap.default_config.pipeline_preset;
+      els.viewModeSelect.value = state.bootstrap.default_config.view_mode;
+      els.candidateCountInput.value = state.bootstrap.default_config.n_candidates;
+      els.skipAlignInput.checked = state.bootstrap.default_config.skip_align;
+      els.disableQueryOrderInput.checked = state.bootstrap.default_config.disable_query_order;
+      renderRuns(state.bootstrap.runs);
+      await loadSamples();
+      if (state.bootstrap.runs.length) {
+        await loadRun(state.bootstrap.runs[0].id, false);
+      }
+    }
+
+    els.datasetSelect.addEventListener("change", async () => {
+      populateModeSelector();
+      state.selectedSample = null;
+      await loadSamples();
+    });
+
+    els.modeSelect.addEventListener("change", async () => {
+      renderDatasetStats();
+      state.selectedSample = null;
+      await loadSamples();
+    });
+
+    els.dbFilterSelect.addEventListener("change", () => loadSamples().catch((error) => setFlash(error.message, "error")));
+    els.sampleSearchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        loadSamples().catch((error) => setFlash(error.message, "error"));
+      }
+    });
+    els.refreshSamplesBtn.addEventListener("click", () => loadSamples().catch((error) => setFlash(error.message, "error")));
+    els.saveSettingsBtn.addEventListener("click", () => saveSettings().catch((error) => setFlash(error.message, "error")));
+    els.clearOpenAIKeyBtn.addEventListener("click", () => saveSettings("openai").catch((error) => setFlash(error.message, "error")));
+    els.clearOpenRouterKeyBtn.addEventListener("click", () => saveSettings("openrouter").catch((error) => setFlash(error.message, "error")));
+    els.runModeSelect.addEventListener("change", updateSelectionSummary);
+    els.runDbSelect.addEventListener("change", () => {
+      els.dbBrowserSelect.value = els.runDbSelect.value;
+      updateSelectionSummary();
+    });
+    els.dbBrowserSelect.addEventListener("change", () => {
+      els.runDbSelect.value = els.dbBrowserSelect.value;
+      loadTables().catch((error) => setFlash(error.message, "error"));
+    });
+    els.loadTablesBtn.addEventListener("click", () => loadTables().catch((error) => setFlash(error.message, "error")));
+    els.runSqlBtn.addEventListener("click", () => runSql().catch((error) => setFlash(error.message, "error")));
+    els.runBtn.addEventListener("click", () => startRun().catch((error) => setFlash(error.message, "error")));
+    els.loadCurrentRunBtn.addEventListener("click", () => {
+      if (state.currentRun?.id) {
+        loadRun(state.currentRun.id, false).catch((error) => setFlash(error.message, "error"));
+      } else {
+        setFlash("Chưa có run hiện tại để nạp lại.", "error");
+      }
+    });
+    els.viewModeSelect.addEventListener("change", () => {
+      if (state.currentRun) {
+        renderTrace(state.currentRun);
+      }
+    });
+
+    bootstrap().catch((error) => setFlash(error.message, "error"));
+  </script>
+</body>
+</html>

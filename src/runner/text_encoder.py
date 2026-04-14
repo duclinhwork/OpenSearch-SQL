@@ -26,6 +26,9 @@ class SentenceTransformerCompat:
 
 
 def get_text_encoder(model_name: str, device: str = "cpu", cache_folder: str = ""):
+    if model_name.strip().lower() == "hashing-fallback":
+        return SentenceTransformerCompat(model_name, device=device, cache_folder=cache_folder)
+
     try:
         from sentence_transformers import SentenceTransformer  # type: ignore
 
